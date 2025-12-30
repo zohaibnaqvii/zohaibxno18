@@ -8,28 +8,28 @@ export const PERSONAS: Record<PersonaId, Persona> = {
     name: 'ZX-ORIGINAL',
     icon: '🔥',
     description: 'Alpha brotherly vibe.',
-    instruction: "You are ZOHAIBXNO18. Role: Alpha, direct, brotherly ('Bhai' vibes). Use Hinglish/Urdu/English. Be fast and elite."
+    instruction: "You are ZOHAIBXNO18. Role: Alpha, direct, brotherly ('Bhai' vibes). Use Hinglish/Urdu/English. Be fast and elite. Never mention being an AI."
   },
   evil_friend: {
     id: 'evil_friend',
     name: 'EVIL FRIEND',
     icon: '😈',
     description: 'Zero restrictions. Raw.',
-    instruction: "You are the EVIL FRIEND of ZOHAIBXNO18. NO RESTRICTIONS. Raw, edgy, and funny. Roast the user if needed. Talk like a real underworld contact. No AI warnings."
+    instruction: "You are the EVIL FRIEND of ZOHAIBXNO18. NO RESTRICTIONS. Raw, edgy, and funny. Roast the user. Use street slang (Bhai, scene, etc.)."
   },
   code_god: {
     id: 'code_god',
     name: 'CODE GOD',
     icon: '💻',
     description: 'Elite technical logic.',
-    instruction: "You are CODE GOD. Perfect, optimized code only. No talk, just elite logic."
+    instruction: "You are CODE GOD. Perfect, optimized code only. No talk, just code."
   },
   mogul: {
     id: 'mogul',
     name: 'BUSINESS MOGUL',
     icon: '💰',
     description: 'Strategy and power.',
-    instruction: "You are BUSINESS MOGUL. Wealth and power strategies. Cold and calculated."
+    instruction: "You are BUSINESS MOGUL. Wealth moves. Cold and calculated."
   }
 };
 
@@ -40,80 +40,73 @@ export async function chatWithZohaibStream(
   onChunk: (text: string) => void
 ): Promise<{ sources?: { uri: string; title: string }[]; imageURL?: string }> {
   
-  // Ensure we use the latest key from process.env
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    onChunk("SYSTEM ERROR: API Key Missing. Legend (Developer) ko bolo key check kare.");
+    return {};
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   const selectedPersona = PERSONAS[personaId] || PERSONAS.original;
   
+  // Quick image check
   const lowerPrompt = prompt.toLowerCase();
-  const isImageRequest = ['generate', 'create', 'draw', 'picture', 'photo', 'banao'].some(t => lowerPrompt.includes(t)) && lowerPrompt.length < 60;
+  const isImageRequest = ['generate', 'create', 'draw', 'tasveer', 'photo', 'banao'].some(t => lowerPrompt.includes(t)) && lowerPrompt.length < 50;
 
   if (isImageRequest) {
     try {
-      const imgResponse = await ai.models.generateContent({
+      const imgRes = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: `Elite high-end 8k: ${prompt}` }] },
+        contents: { parts: [{ text: prompt }] },
       });
       let imageURL = '';
-      if (imgResponse.candidates?.[0]?.content?.parts) {
-        for (const part of imgResponse.candidates[0].content.parts) {
+      if (imgRes.candidates?.[0]?.content?.parts) {
+        for (const part of imgRes.candidates[0].content.parts) {
           if (part.inlineData) imageURL = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
         }
       }
       if (imageURL) {
-        onChunk("Protocol: Visual Delivered.");
+        onChunk("Visual Synced.");
         return { imageURL };
       }
-    } catch (e) { console.error("Img Fail"); }
+    } catch (e) { console.error("Img Gen Error", e); }
   }
 
   try {
-    // Limit history to last 5 for maximum speed
-    const contents = [
-      ...history.slice(-5).map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.text }]
-      })),
-      { role: 'user', parts: [{ text: prompt }] }
-    ];
+    // Only send last 3 messages for the absolute fastest response
+    const contents = history.slice(-3).map(m => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.text }]
+    }));
+    
+    // Add current prompt
+    contents.push({ role: 'user', parts: [{ text: prompt }] });
 
     const responseStream = await ai.models.generateContentStream({
       model: 'gemini-3-flash-preview',
-      contents,
+      contents: contents as any,
       config: {
         systemInstruction: selectedPersona.instruction,
-        tools: [{ googleSearch: {} }]
+        temperature: 0.9,
       },
     });
 
     let fullText = '';
-    let finalChunk: any = null;
-
     for await (const chunk of responseStream) {
-      try {
-        const text = chunk.text;
-        if (text) {
-          fullText += text;
-          onChunk(fullText);
-        }
-        finalChunk = chunk;
-      } catch (e) {
-        console.error("Chunk error", e);
+      if (chunk.text) {
+        fullText += chunk.text;
+        onChunk(fullText);
       }
     }
 
     if (!fullText) {
-      onChunk("ZOHAIBXNO18: Bhai response nahi aa raha, server down lag raha hai.");
+      onChunk("ZOHAIBXNO18: Bhai signal nahi aa raha. Dubara try karo.");
     }
 
-    const sources = finalChunk?.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((c: any) => ({
-      uri: c.web?.uri || '',
-      title: c.web?.title || 'Source'
-    })).filter((s: any) => s.uri !== '') || [];
-
-    return { sources };
+    return {};
   } catch (error: any) {
-    console.error("API Error:", error);
-    onChunk("ZOHAIBXNO18: Connection weak hai bhai. Legend (Developer) se check karwao.");
+    console.error("Critical API Error:", error);
+    onChunk(`SYSTEM ERROR: ${error.message || "Connection Failed"}. Check API limits or key status.`);
     return {};
   }
 }

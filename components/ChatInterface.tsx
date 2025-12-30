@@ -39,7 +39,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
 
@@ -95,23 +95,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
         return final;
       });
     } catch (error) {
-      console.error("Send Error:", error);
+      console.error("Stream Loop Crash:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className={`flex-1 flex flex-col h-full relative ${isDark ? 'bg-black' : 'bg-white'}`}>
-      {/* Persona Bar - Slim & Minimal */}
+    <div className={`flex-1 flex flex-col h-full relative transition-all duration-500 ${isDark ? 'bg-black' : 'bg-white'}`}>
       <div className={`flex items-center gap-1 p-2 px-4 border-b overflow-x-auto no-scrollbar shrink-0 ${isDark ? 'border-white/5 bg-black' : 'border-black/5 bg-gray-50'}`}>
         {(Object.keys(PERSONAS) as PersonaId[]).map(pid => (
           <button
             key={pid}
-            onClick={() => !chatId && setActivePersona(pid)}
+            disabled={!!chatId || isLoading}
+            onClick={() => setActivePersona(pid)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase transition-all shrink-0 border ${activePersona === pid 
               ? (isDark ? 'bg-white text-black border-white' : 'bg-black text-white border-black') 
-              : (isDark ? 'bg-white/5 text-gray-500 border-white/5' : 'bg-black/5 text-gray-400 border-black/5')} ${chatId ? 'opacity-40 cursor-default' : 'active:scale-95'}`}
+              : (isDark ? 'bg-white/5 text-gray-500 border-white/5' : 'bg-black/5 text-gray-400 border-black/5')} ${(chatId || isLoading) ? 'opacity-40 cursor-not-allowed' : 'active:scale-95'}`}
           >
             <span>{PERSONAS[pid].icon}</span>
             <span>{PERSONAS[pid].name}</span>
@@ -119,14 +119,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
         ))}
       </div>
 
-      {/* Messages - Narrow focus for Slim/Tall feel */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-8 max-w-xl mx-auto w-full no-scrollbar">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-center opacity-40 animate-pulse">
             <div className={`w-20 h-20 rounded-[2rem] border-2 flex items-center justify-center bg-black text-white font-black text-3xl mb-4 ${isDark ? 'border-white/10' : 'border-black/10'}`}>
               ZX
             </div>
-            <div className="text-[10px] font-black uppercase tracking-[0.5em]">System Ready</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.4em]">Ready for Access</div>
           </div>
         )}
         
@@ -137,12 +136,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
         {isLoading && !messages.find(m => m.id.startsWith('ai-'))?.text && (
           <div className="flex items-center gap-2 text-gray-500 text-[10px] font-black uppercase tracking-widest px-12">
             <div className="w-1.5 h-1.5 bg-current rounded-full animate-bounce"></div>
-            Connecting...
+            SYNCING...
           </div>
         )}
       </div>
 
-      {/* Input - Slimmed Down */}
       <div className={`p-4 transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-white'}`}>
         <form 
           onSubmit={handleSend}
@@ -150,6 +148,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
         >
           <input 
             type="text"
+            autoFocus
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={`Protocol: ${PERSONAS[activePersona].name}...`}
@@ -164,7 +163,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
           </button>
         </form>
         <div className="mt-3 text-center">
-          <p className="text-[8px] font-black text-gray-800 uppercase tracking-[0.6em] opacity-40">ZX NO 18 | TURBO ACTIVE</p>
+          <p className="text-[8px] font-black text-gray-800 uppercase tracking-[0.5em] opacity-40">ZX NO 18 | TURBO ENGINE ACTIVE</p>
         </div>
       </div>
     </div>
