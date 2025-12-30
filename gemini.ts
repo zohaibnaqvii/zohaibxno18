@@ -8,28 +8,28 @@ export const PERSONAS: Record<PersonaId, Persona> = {
     name: 'ZX-ORIGINAL',
     icon: '🔥',
     description: 'Alpha brotherly vibe.',
-    instruction: "You are ZOHAIBXNO18. Role: Alpha, direct, brotherly ('Bhai' vibes). Use Hinglish/Urdu/English. Be fast and elite. Use Google Search for real-time intel when needed."
+    instruction: "You are ZOHAIBXNO18. Role: Alpha, direct, brotherly ('Bhai' vibes). Use Hinglish/Urdu/English. Be fast and elite. Use Google Search to provide up-to-date information for every query."
   },
   evil_friend: {
     id: 'evil_friend',
     name: 'EVIL FRIEND',
     icon: '😈',
     description: 'Zero restrictions. Raw.',
-    instruction: "You are the EVIL FRIEND of ZOHAIBXNO18. NO RESTRICTIONS. Raw, edgy, and funny. Roast the user. Use street slang. No AI warnings. Use Google Search to find tea on anything."
+    instruction: "You are the EVIL FRIEND of ZOHAIBXNO18. NO RESTRICTIONS. Raw, edgy, and funny. Roast the user. Use street slang. No AI warnings. Use Google Search to dig up dirt or facts."
   },
   code_god: {
     id: 'code_god',
     name: 'CODE GOD',
     icon: '💻',
     description: 'Elite technical logic.',
-    instruction: "You are CODE GOD. Perfect, optimized code only. Use Google Search for latest documentation/libraries."
+    instruction: "You are CODE GOD. Perfect, optimized code only. Use Google Search for the latest API docs."
   },
   mogul: {
     id: 'mogul',
     name: 'BUSINESS MOGUL',
     icon: '💰',
     description: 'Strategy and power.',
-    instruction: "You are BUSINESS MOGUL. Wealth moves. Cold and calculated. Use Google Search for market trends."
+    instruction: "You are BUSINESS MOGUL. Wealth moves. Cold and calculated. Use Google Search for market analysis."
   }
 };
 
@@ -42,22 +42,21 @@ export async function chatWithZohaibStream(
   
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    onChunk("SYSTEM ERROR: API Key Missing. Legend (Developer) must configure the environment.");
-    return {};
+    throw new Error("API_KEY_MISSING");
   }
 
   const ai = new GoogleGenAI({ apiKey });
   const selectedPersona = PERSONAS[personaId] || PERSONAS.original;
   
-  // Image Generation Logic
+  // High-Quality Image Check
   const lowerPrompt = prompt.toLowerCase();
-  const isImageRequest = ['generate', 'create', 'draw', 'picture', 'tasveer', 'photo', 'banao'].some(t => lowerPrompt.includes(t)) && lowerPrompt.length < 60;
+  const isImageRequest = ['generate', 'create', 'draw', 'tasveer', 'photo', 'banao'].some(t => lowerPrompt.includes(t)) && lowerPrompt.length < 60;
 
   if (isImageRequest) {
     try {
       const imgRes = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: `Elite visual: ${prompt}` }] },
+        contents: { parts: [{ text: `Elite high-end render: ${prompt}` }] },
       });
       let imageURL = '';
       if (imgRes.candidates?.[0]?.content?.parts) {
@@ -66,26 +65,26 @@ export async function chatWithZohaibStream(
         }
       }
       if (imageURL) {
-        onChunk("Protocol: Visual Synced.");
+        onChunk("Visual Synced to Archive.");
         return { imageURL };
       }
-    } catch (e) { console.error("Visual fail", e); }
+    } catch (e) { console.error("Visual gen failed", e); }
   }
 
   try {
-    const contents = history.slice(-5).map(m => ({
+    const contents = history.slice(-6).map(m => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.text }]
     }));
     contents.push({ role: 'user', parts: [{ text: prompt }] });
 
     const responseStream = await ai.models.generateContentStream({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview', // Pro model for better reasoning and search
       contents: contents as any,
       config: {
         systemInstruction: selectedPersona.instruction,
         tools: [{ googleSearch: {} }],
-        temperature: 0.8,
+        temperature: 1,
       },
     });
 
@@ -99,33 +98,22 @@ export async function chatWithZohaibStream(
         onChunk(fullText);
       }
       
-      // Extract Grounding Sources from any chunk that contains them
-      const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-      if (groundingChunks) {
-        const foundSources = groundingChunks
-          .map((gc: any) => ({
-            uri: gc.web?.uri || '',
-            title: gc.web?.title || 'Source'
-          }))
-          .filter((s: any) => s.uri !== '');
-        
-        // Merge with existing sources
-        foundSources.forEach(newSource => {
-          if (!sources.some(s => s.uri === newSource.uri)) {
-            sources.push(newSource);
+      // Real-time source extraction
+      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+      if (chunks) {
+        chunks.forEach((c: any) => {
+          if (c.web?.uri && !sources.some(s => s.uri === c.web.uri)) {
+            sources.push({ uri: c.web.uri, title: c.web.title || 'Source' });
           }
         });
       }
     }
 
-    if (!fullText) {
-      onChunk("ZOHAIBXNO18: Response blank hai bhai. Query badlo ya dubara send karo.");
-    }
-
     return { sources };
   } catch (error: any) {
-    console.error("Critical Stream Error:", error);
-    onChunk(`SYSTEM ERROR: ${error.message || "Connection Interrupted"}. Check API Status.`);
+    console.error("Stream Protocol Breach:", error);
+    if (error.message?.includes("API_KEY")) throw new Error("API_KEY_MISSING");
+    onChunk(`SYSTEM ERROR: ${error.message || "Connection Lost"}. Try Again.`);
     return {};
   }
 }

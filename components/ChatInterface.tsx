@@ -5,6 +5,19 @@ import { db } from '../firebase';
 import { chatWithZohaibStream, PERSONAS } from '../gemini';
 import MessageBubble from './MessageBubble';
 
+// Fix: Use the correct interface name AIStudio to match existing global declarations
+// and resolve the "All declarations of 'aistudio' must have identical modifiers" error.
+interface AIStudio {
+  hasSelectedApiKey: () => Promise<boolean>;
+  openSelectKey: () => Promise<void>;
+}
+
+declare global {
+  interface Window {
+    aistudio: AIStudio;
+  }
+}
+
 interface ChatInterfaceProps {
   user: User;
   chatId: string | null;
@@ -17,8 +30,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activePersona, setActivePersona] = useState<PersonaId>('original');
+  const [keyMissing, setKeyMissing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDark = theme === 'dark';
+
+  useEffect(() => {
+    const checkKey = async () => {
+      if (window.aistudio) {
+        const hasKey = await window.aistudio.hasSelectedApiKey();
+        // The API key is available via process.env.API_KEY
+        setKeyMissing(!hasKey && !process.env.API_KEY);
+      }
+    };
+    checkKey();
+  }, []);
+
+  const handleActivate = async () => {
+    if (window.aistudio) {
+      await window.aistudio.openSelectKey();
+      // Assume the key selection was successful after triggering openSelectKey()
+      setKeyMissing(false);
+    }
+  };
 
   useEffect(() => {
     const loadChat = async () => {
@@ -39,7 +72,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
 
@@ -99,12 +132,34 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
         if (!chatId) onChatCreated(updatedChatId);
         return final;
       });
-    } catch (error) {
-      console.error("Protocol Error:", error);
+    } catch (error: any) {
+      if (error.message === "API_KEY_MISSING") {
+        setKeyMissing(true);
+      }
+      console.error("Chat Error:", error);
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (keyMissing) {
+    return (
+      <div className={`flex-1 flex flex-col items-center justify-center p-8 text-center ${isDark ? 'bg-black text-white' : 'bg-white text-black'}`}>
+        <div className="w-24 h-24 rounded-[2.5rem] bg-red-600 flex items-center justify-center mb-8 animate-pulse shadow-[0_0_50px_rgba(220,38,38,0.3)]">
+          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3m-3-3l-2.25-2.25"></path></svg>
+        </div>
+        <h2 className="text-2xl font-black uppercase tracking-tighter mb-4">Access Denied</h2>
+        <p className="text-gray-500 text-sm max-w-xs mb-8 font-medium">Bhai system band hai. API key activate karni hogi Access panel se.</p>
+        <button 
+          onClick={handleActivate}
+          className="px-10 py-4 bg-white text-black rounded-2xl font-black uppercase text-xs tracking-widest hover:scale-105 active:scale-95 transition-all"
+        >
+          Activate System
+        </button>
+        <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="mt-6 text-[9px] uppercase font-black text-gray-700 hover:text-gray-400 tracking-widest">Billing Info</a>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex-1 flex flex-col h-full relative ${isDark ? 'bg-black' : 'bg-white'}`}>
