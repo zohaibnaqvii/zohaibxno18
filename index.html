@@ -3,7 +3,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>ZOHAIB X NO 18</title>
     <meta name="theme-color" content="#000000" />
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
     <style>
       body {
@@ -23,9 +23,13 @@
         background-color: #000;
         color: white;
         overflow: hidden;
+        height: 100dvh;
+      }
+      #root {
+        height: 100dvh;
       }
       #initial-loader {
-        height: 100vh;
+        height: 100dvh;
         width: 100vw;
         display: flex;
         flex-direction: column;
@@ -46,6 +50,16 @@
         0%, 100% { opacity: 0.5; }
         50% { opacity: 1; }
       }
+      ::-webkit-scrollbar {
+        width: 3px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+      }
     </style>
     <script type="importmap">
     {
@@ -62,7 +76,7 @@
     <div id="root">
       <div id="initial-loader">
         <div class="pulse-text text-3xl">ZOHAIB X NO 18</div>
-        <div class="text-[10px] uppercase tracking-[0.4em] mt-4 text-gray-600 font-bold">ESTABLISHING LEGENDARY CONNECTION...</div>
+        <div class="text-[9px] uppercase tracking-[0.6em] mt-6 text-gray-700 font-black">SYNCING ELITE PROTOCOLS...</div>
       </div>
     </div>
     <script type="module" src="index.tsx"></script>
