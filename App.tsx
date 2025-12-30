@@ -48,11 +48,12 @@ const App: React.FC = () => {
     if (window.aistudio?.openSelectKey) {
       await window.aistudio.openSelectKey();
       setIsKeyValid(true);
-      // Brief delay to allow injection, then simple state update instead of reload to keep history
+      // Wait for injection
       setTimeout(async () => {
         if (window.aistudio?.hasSelectedApiKey) {
           const check = await window.aistudio.hasSelectedApiKey();
           setIsKeyValid(check);
+          // If still showing error, we might need a refresh but let's try just updating state
         }
       }, 1000);
     }
@@ -87,9 +88,10 @@ const App: React.FC = () => {
             </button>
             <button 
               onClick={handleActivateKey}
-              className={`text-[8px] font-black tracking-tighter uppercase px-2 py-0.5 rounded border transition-all active:scale-95 ${!isKeyValid ? 'border-red-500 text-red-500 animate-pulse' : 'border-current opacity-40'}`}
+              className={`flex items-center gap-2 text-[9px] font-black tracking-tighter uppercase px-3 py-1 rounded-full border transition-all active:scale-95 ${!isKeyValid ? 'border-red-500 bg-red-500/10 text-red-500 animate-pulse' : 'border-green-500/20 bg-green-500/5 text-green-500'}`}
             >
-              {!isKeyValid ? 'OFFLINE • ACTIVATE' : 'ONLINE'}
+              <div className={`w-1.5 h-1.5 rounded-full ${!isKeyValid ? 'bg-red-500 animate-ping' : 'bg-green-500'}`}></div>
+              {!isKeyValid ? 'SYNC SYSTEM' : 'ONLINE'}
             </button>
           </div>
           
@@ -98,8 +100,8 @@ const App: React.FC = () => {
           <div className="flex items-center gap-1">
             <button 
               onClick={handleActivateKey} 
-              className={`p-2 transition-all ${!isKeyValid ? 'text-red-500 animate-bounce' : 'opacity-40 hover:opacity-100'}`}
-              title="Activate System"
+              className={`p-2 transition-all ${!isKeyValid ? 'text-red-500 scale-110' : 'opacity-40 hover:opacity-100'}`}
+              title="Sync Protocol"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3m-3-3l-2.5-2.5"></path></svg>
             </button>
@@ -112,7 +114,11 @@ const App: React.FC = () => {
           chatId={currentChatId} 
           theme={theme}
           onChatCreated={(id) => setCurrentChatId(id)}
-          onKeyError={() => setIsKeyValid(false)}
+          onKeyError={() => {
+            setIsKeyValid(false);
+            // Auto-trigger the dialog to help the user
+            handleActivateKey();
+          }}
         />
       </div>
 
