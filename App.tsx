@@ -24,12 +24,10 @@ const App: React.FC = () => {
       const currentUser = auth.getCurrentUser();
       if (currentUser) setUser(currentUser);
       
-      // Check initial key status
       if (window.aistudio?.hasSelectedApiKey) {
         const hasKey = await window.aistudio.hasSelectedApiKey();
         setIsKeyValid(hasKey);
       }
-      
       setLoading(false);
     };
     init();
@@ -50,8 +48,13 @@ const App: React.FC = () => {
     if (window.aistudio?.openSelectKey) {
       await window.aistudio.openSelectKey();
       setIsKeyValid(true);
-      // Optional: reload to ensure process.env.API_KEY is picked up
-      setTimeout(() => window.location.reload(), 500);
+      // Brief delay to allow injection, then simple state update instead of reload to keep history
+      setTimeout(async () => {
+        if (window.aistudio?.hasSelectedApiKey) {
+          const check = await window.aistudio.hasSelectedApiKey();
+          setIsKeyValid(check);
+        }
+      }, 1000);
     }
   };
 
@@ -82,9 +85,12 @@ const App: React.FC = () => {
             <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
-            <div className={`text-[8px] font-black tracking-tighter uppercase px-2 py-0.5 rounded border ${!isKeyValid ? 'border-red-500 text-red-500 animate-pulse' : 'border-current opacity-40'}`}>
-              {!isKeyValid ? 'OFFLINE' : 'ONLINE'}
-            </div>
+            <button 
+              onClick={handleActivateKey}
+              className={`text-[8px] font-black tracking-tighter uppercase px-2 py-0.5 rounded border transition-all active:scale-95 ${!isKeyValid ? 'border-red-500 text-red-500 animate-pulse' : 'border-current opacity-40'}`}
+            >
+              {!isKeyValid ? 'OFFLINE • ACTIVATE' : 'ONLINE'}
+            </button>
           </div>
           
           <div className="text-xs font-black tracking-tighter uppercase">ZOHAIB X NO 18</div>
@@ -92,7 +98,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-1">
             <button 
               onClick={handleActivateKey} 
-              className={`p-2 transition-all ${!isKeyValid ? 'text-red-500 scale-125' : 'opacity-40 hover:opacity-100'}`}
+              className={`p-2 transition-all ${!isKeyValid ? 'text-red-500 animate-bounce' : 'opacity-40 hover:opacity-100'}`}
               title="Activate System"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3m-3-3l-2.5-2.5"></path></svg>

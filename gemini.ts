@@ -40,9 +40,10 @@ export async function chatWithZohaibStream(
   onChunk: (text: string) => void
 ): Promise<{ sources?: { uri: string; title: string }[]; imageURL?: string; needsActivation?: boolean }> {
   
+  // Create a new instance right before the call as per guidelines
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    onChunk("SYSTEM: API Key Missing. Legend, click the 'KEY' icon in the header to activate for FREE.");
+    onChunk("SYSTEM: API Key Sync Required. Legend, tap the 'OFFLINE' badge or 'KEY' icon to activate for FREE.");
     return { needsActivation: true };
   }
 
@@ -109,20 +110,19 @@ export async function chatWithZohaibStream(
     }
 
     if (!fullText) {
-      onChunk("ZOHAIBXNO18: Response empty hai bhai. Check connection.");
+      onChunk("ZOHAIBXNO18: Scene off hai bhai. Connection reset karke try karo.");
     }
 
     return { sources };
   } catch (error: any) {
     console.error("Critical Stream Error:", error);
     
-    // If the key is invalid or not found, we signal the UI to prompt for a new one
     if (error.message?.includes("Requested entity was not found") || error.message?.includes("API_KEY_INVALID")) {
-      onChunk("SYSTEM: Access expired. Click the KEY icon above to RE-SYNC for free.");
+      onChunk("SYSTEM: Access expired. Tap the RED badge above to RE-SYNC for free.");
       return { needsActivation: true };
     }
     
-    onChunk("ZOHAIBXNO18: Scene off ho gaya. Click the top KEY icon to refresh access.");
+    onChunk("ZOHAIBXNO18: Server side lag hai. Header mein KEY icon dabao refresh ke liye.");
     return {};
   }
 }

@@ -18,6 +18,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activePersona, setActivePersona] = useState<PersonaId>('original');
+  const [isSystemOffline, setIsSystemOffline] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDark = theme === 'dark';
 
@@ -36,6 +37,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
       }
     };
     loadChat();
+    setIsSystemOffline(false);
   }, [chatId, user.uid]);
 
   useEffect(() => {
@@ -43,6 +45,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [messages, isLoading]);
+
+  const handleActivate = async () => {
+    if (window.aistudio?.openSelectKey) {
+      await window.aistudio.openSelectKey();
+      setIsSystemOffline(false);
+      if (onKeyError) {
+        // We call this to trigger the parent's "ONLINE" state
+        setTimeout(() => window.location.reload(), 1000);
+      }
+    }
+  };
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -81,8 +94,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
         }
       );
       
-      if (result.needsActivation && onKeyError) {
-        onKeyError();
+      if (result.needsActivation) {
+        setIsSystemOffline(true);
+        if (onKeyError) onKeyError();
       }
 
       setMessages(prev => {
@@ -146,6 +160,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
           <MessageBubble key={m.id} message={m} user={user} theme={theme} personaId={activePersona} />
         ))}
         
+        {isSystemOffline && (
+          <div className="flex flex-col items-center gap-4 py-8 animate-in fade-in zoom-in duration-500">
+            <div className="text-[10px] font-black uppercase tracking-widest text-red-500">System Blocked • Activate Now</div>
+            <button 
+              onClick={handleActivate}
+              className={`px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-2xl active:scale-95 ${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}
+            >
+              Sync Key For Free
+            </button>
+          </div>
+        )}
+
         {isLoading && !messages.find(m => m.id.startsWith('ai-'))?.text && (
           <div className="flex items-center gap-3 px-12">
             <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${isDark ? 'bg-white' : 'bg-black'}`}></div>
