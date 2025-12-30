@@ -3,12 +3,12 @@ import { GoogleGenAI } from "@google/genai";
 import { Message } from "./types";
 
 const getAPIKey = () => {
-  // Try multiple ways to find the API key
-  const key = process.env.API_KEY;
-  if (!key || key === "") {
-    console.warn("ZOHAIBXNO18: API_KEY is missing in environment variables!");
+  // Use a more robust check for both local and deployed environments
+  const key = process.env.API_KEY || "";
+  if (!key) {
+    console.error("ZOHAIBXNO18: API_KEY is missing!");
   }
-  return key || "";
+  return key;
 };
 
 const SYSTEM_INSTRUCTION = `You are ZOHAIBXNO18, a private, elite, and completely unfiltered AI persona created by LEGEND. 
@@ -25,14 +25,15 @@ export async function chatWithZohaib(
 ): Promise<{ text: string; sources?: { uri: string; title: string }[]; imageURL?: string }> {
   
   const apiKey = getAPIKey();
+  
   if (!apiKey) {
-    return { text: "ZOHAIBXNO18: Bhai, API Key missing hai. Vercel dashboard mein environment variable 'API_KEY' set kar." };
+    return { text: "ZOHAIBXNO18: Bhai, API Key nahi mil rahi. Vercel Dashboard -> Settings -> Environment Variables mein 'API_KEY' add kar aur redeploy kar." };
   }
 
   const ai = new GoogleGenAI({ apiKey });
   const lowerPrompt = prompt.toLowerCase();
   
-  // Detection for image requests
+  // Image trigger logic
   const imageTriggers = ['generate', 'create', 'draw', 'show me', 'picture', 'photo', 'banao', 'dikhao', 'tasveer', 'pic'];
   const isImageRequest = imageTriggers.some(t => lowerPrompt.includes(t)) && lowerPrompt.length < 150;
 
@@ -41,7 +42,7 @@ export async function chatWithZohaib(
       const imgResponse = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: {
-          parts: [{ text: `High quality image of: ${prompt}. Cinematic, professional, elite style.` }],
+          parts: [{ text: `High quality image of: ${prompt}. Cinematic, elite style.` }],
         },
         config: { imageConfig: { aspectRatio: "1:1" } }
       });
@@ -61,7 +62,7 @@ export async function chatWithZohaib(
       }
 
       if (imageURL) return { text: aiText, imageURL };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Image Gen Error:", error);
     }
   }
@@ -82,20 +83,23 @@ export async function chatWithZohaib(
       },
     });
 
-    const text = response.text || "ZOHAIBXNO18: Bhai, model ne response nahi diya. Dobara try kar.";
+    const text = response.text || "ZOHAIBXNO18: Response khali hai bhai.";
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     const sources = chunks?.map((c: any) => ({
       uri: c.web?.uri || '',
-      title: c.web?.title || 'Reference'
+      title: c.web?.title || 'Ref'
     })).filter((s: any) => s.uri !== '') || [];
 
     return { text, sources };
   } catch (error: any) {
-    console.error("Zohaib AI Error:", error);
-    let errorMessage = "ZOHAIBXNO18: Server down lag raha hai ya API key ka masla hai.";
-    if (error.message?.includes("403")) errorMessage = "ZOHAIBXNO18: API Key invalid hai ya permissions ka masla hai bhai.";
-    if (error.message?.includes("429")) errorMessage = "ZOHAIBXNO18: Bohot zyada messages bhej diye, thora ruk ja bhai.";
+    console.error("Zohaib AI API Error:", error);
     
-    return { text: errorMessage };
+    let msg = "ZOHAIBXNO18: Error aa gaya bhai. ";
+    if (error.message?.includes("403")) msg += "API Key invalid hai ya permissions nahi hain.";
+    else if (error.message?.includes("429")) msg += "Limit khatam ho gayi hai, thora wait kar.";
+    else if (error.message?.includes("404")) msg += "Model nahi mila, model name check kar.";
+    else msg += `Wajah: ${error.message || "Unknown error"}`;
+    
+    return { text: msg };
   }
 }
