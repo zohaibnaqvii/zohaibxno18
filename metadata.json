@@ -1,0 +1,8 @@
+{
+  "name": "ZOHAIB X NO 18",
+  "description": "A powerful, fast, ChatGPT-style AI chat application branded as ZOHAIBXNO18 with Google search grounding and image generation capabilities.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
