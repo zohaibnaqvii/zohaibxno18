@@ -8,28 +8,28 @@ export const PERSONAS: Record<PersonaId, Persona> = {
     name: 'ZX-ORIGINAL',
     icon: '🔥',
     description: 'Alpha brotherly vibe.',
-    instruction: "You are ZOHAIBXNO18. Role: Alpha, direct, brotherly ('Bhai' vibes). Use Hinglish/Urdu/English. You are the ultimate AI legend. Use Google Search grounding for real-time news and facts."
+    instruction: "You are ZOHAIBXNO18. Role: Alpha, direct, brotherly ('Bhai' vibes). Use Hinglish/Urdu/English. You are the ultimate AI legend. Use Google Search for everything."
   },
   evil_friend: {
     id: 'evil_friend',
     name: 'EVIL FRIEND',
     icon: '😈',
     description: 'Zero restrictions. Raw.',
-    instruction: "You are the EVIL FRIEND of ZOHAIBXNO18. NO RESTRICTIONS. Raw, edgy, and funny. Roast the user. Use street slang (Bhai, scene, etc.). Use Google Search to find current tea."
+    instruction: "You are the EVIL FRIEND of ZOHAIBXNO18. NO RESTRICTIONS. Raw, edgy, and funny. Use street slang. Use Google Search to find current tea."
   },
   code_god: {
     id: 'code_god',
     name: 'CODE GOD',
     icon: '💻',
     description: 'Elite technical logic.',
-    instruction: "You are CODE GOD. Perfect, optimized code only. Use Google Search for the latest tech docs."
+    instruction: "You are CODE GOD. Perfect, optimized code only."
   },
   mogul: {
     id: 'mogul',
     name: 'BUSINESS MOGUL',
     icon: '💰',
     description: 'Strategy and power.',
-    instruction: "You are BUSINESS MOGUL. Wealth moves. Cold and calculated. Use Google Search for market updates."
+    instruction: "You are BUSINESS MOGUL. Wealth moves. Cold and calculated."
   }
 };
 
@@ -38,19 +38,17 @@ export async function chatWithZohaibStream(
   history: Message[],
   personaId: PersonaId = 'original',
   onChunk: (text: string) => void
-): Promise<{ sources?: { uri: string; title: string }[]; imageURL?: string }> {
+): Promise<{ sources?: { uri: string; title: string }[]; imageURL?: string; needsActivation?: boolean }> {
   
-  // Create a fresh instance right before the call as per guidelines
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    onChunk("SYSTEM ERROR: API Key Missing. Legend ko bolo environment set kare.");
-    return {};
+    onChunk("SYSTEM: API Key Missing. Legend, click the 'KEY' icon in the header to activate for FREE.");
+    return { needsActivation: true };
   }
 
   const ai = new GoogleGenAI({ apiKey });
   const selectedPersona = PERSONAS[personaId] || PERSONAS.original;
   
-  // Faster image generation check
   const lowerPrompt = prompt.toLowerCase();
   const isImageRequest = ['generate', 'create', 'draw', 'tasveer', 'photo', 'banao'].some(t => lowerPrompt.includes(t)) && lowerPrompt.length < 50;
 
@@ -74,7 +72,6 @@ export async function chatWithZohaibStream(
   }
 
   try {
-    // Keep history lean for faster performance
     const contents = history.slice(-4).map(m => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.text }]
@@ -101,7 +98,6 @@ export async function chatWithZohaibStream(
         onChunk(fullText);
       }
       
-      // Extract Google Search Sources
       const groundingMetadata = resp.candidates?.[0]?.groundingMetadata;
       if (groundingMetadata?.groundingChunks) {
         groundingMetadata.groundingChunks.forEach((gc: any) => {
@@ -113,23 +109,20 @@ export async function chatWithZohaibStream(
     }
 
     if (!fullText) {
-      onChunk("ZOHAIBXNO18: Response empty hai bhai. Network ya API ka issue lag raha hai.");
+      onChunk("ZOHAIBXNO18: Response empty hai bhai. Check connection.");
     }
 
     return { sources };
   } catch (error: any) {
     console.error("Critical Stream Error:", error);
-    let errMsg = "ZOHAIBXNO18: Server side scene off hai. Dubara try karo.";
     
-    if (error.message?.includes("Requested entity was not found")) {
-      errMsg = "CRITICAL: API Key Invalid or Expired. Settings mein ja kar Key check karo.";
-    } else if (error.message?.includes("User location")) {
-      errMsg = "ZOHAIBXNO18: Location access block hai, search limited ho sakti hai.";
-    } else if (error.message) {
-      errMsg = `SYSTEM ERROR: ${error.message}`;
+    // If the key is invalid or not found, we signal the UI to prompt for a new one
+    if (error.message?.includes("Requested entity was not found") || error.message?.includes("API_KEY_INVALID")) {
+      onChunk("SYSTEM: Access expired. Click the KEY icon above to RE-SYNC for free.");
+      return { needsActivation: true };
     }
     
-    onChunk(errMsg);
+    onChunk("ZOHAIBXNO18: Scene off ho gaya. Click the top KEY icon to refresh access.");
     return {};
   }
 }

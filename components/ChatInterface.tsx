@@ -10,9 +10,10 @@ interface ChatInterfaceProps {
   chatId: string | null;
   theme: Theme;
   onChatCreated: (id: string) => void;
+  onKeyError?: () => void;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onChatCreated }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onChatCreated, onKeyError }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -80,6 +81,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
         }
       );
       
+      if (result.needsActivation && onKeyError) {
+        onKeyError();
+      }
+
       setMessages(prev => {
         const final = prev.map(m => m.id === aiMessageId ? { 
           ...m, 
@@ -132,7 +137,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
             </div>
             <div className="space-y-1">
               <div className="text-[10px] font-black uppercase tracking-[0.5em] animate-pulse">Establishing Intel...</div>
-              <div className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40">Google Search Engine Active</div>
+              <div className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40">Google Search Cloud Active</div>
             </div>
           </div>
         )}
@@ -173,7 +178,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
           </button>
         </form>
         <div className="mt-4 text-center">
-          <p className="text-[8px] font-black text-gray-800 uppercase tracking-[0.5em] opacity-40">ZOHAIB X NO 18 | GOOGLE SEARCH CLOUD ACTIVE</p>
+          <p className="text-[8px] font-black text-gray-800 uppercase tracking-[0.5em] opacity-40">ZOHAIB X NO 18 | FREE ELITE ACCESS</p>
         </div>
       </div>
     </div>
