@@ -35,8 +35,8 @@ const App: React.FC = () => {
     }
   }, [theme]);
 
-  const handleLogin = async (code: string) => {
-    const loggedInUser = await auth.signInWithSecretCode(code);
+  const handleLogin = async () => {
+    const loggedInUser = await auth.signIn();
     setUser(loggedInUser);
   };
 

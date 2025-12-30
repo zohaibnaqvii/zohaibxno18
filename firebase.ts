@@ -5,12 +5,8 @@ const STORAGE_KEY_USER = 'zohaibx_user';
 const STORAGE_KEY_CHATS = 'zohaibx_chats';
 
 export const auth = {
-  signInWithSecretCode: async (code: string): Promise<User> => {
-    if (code.toUpperCase() !== 'KINGNO18') {
-      throw new Error("Ghalat code hai bhai. LEGEND se sahi code lo.");
-    }
-
-    // Fixed ID for local persistence on this device
+  signIn: async (): Promise<User> => {
+    // Direct access granted by LEGEND
     const mockUser: User = {
       uid: 'zohaib_legend_user',
       name: 'LEGENDARY USER',
