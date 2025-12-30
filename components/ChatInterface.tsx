@@ -105,20 +105,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
 
   return (
     <div className={`flex-1 flex flex-col h-full transition-colors duration-300 ${isDark ? 'bg-[#0d0d0d]' : 'bg-white'}`}>
-      {/* Persona Selector Bar */}
-      <div className={`flex items-center gap-2 p-2 px-4 border-b overflow-x-auto no-scrollbar shrink-0 ${isDark ? 'border-white/5 bg-black/40' : 'border-black/5 bg-gray-50'}`}>
-        <span className={`text-[9px] font-black uppercase tracking-widest mr-2 shrink-0 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>Persona:</span>
+      {/* Persona Selector Bar - Slimmer for mobile */}
+      <div className={`flex items-center gap-2 p-1.5 px-3 border-b overflow-x-auto no-scrollbar shrink-0 ${isDark ? 'border-white/5 bg-black/60' : 'border-black/5 bg-gray-50'}`}>
+        <span className={`text-[8px] font-black uppercase tracking-widest mr-1 shrink-0 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>MOOD:</span>
         {(Object.values(PERSONAS) as any).map((p: any) => (
           <button
             key={p.id}
             onClick={() => !chatId && setActivePersona(p.id)}
-            disabled={!!chatId} // Only allow persona change for new chats for consistency
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase transition-all shrink-0 border ${
+            disabled={!!chatId}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase transition-all shrink-0 border ${
               activePersona === p.id 
-                ? (isDark ? 'bg-white text-black border-white' : 'bg-black text-white border-black')
-                : (isDark ? 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10' : 'bg-black/5 text-gray-600 border-black/5 hover:bg-black/10')
-            } ${chatId ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title={p.description}
+                ? (isDark ? 'bg-white text-black border-white shadow-lg' : 'bg-black text-white border-black shadow-md')
+                : (isDark ? 'bg-white/5 text-gray-400 border-white/5' : 'bg-black/5 text-gray-600 border-black/5')
+            } ${chatId ? 'opacity-40' : 'active:scale-95'}`}
           >
             <span>{p.icon}</span>
             <span>{p.name}</span>
@@ -128,25 +127,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
 
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-8 space-y-6 md:px-0 md:max-w-3xl md:mx-auto w-full scroll-smooth"
+        className="flex-1 overflow-y-auto px-4 py-6 space-y-5 md:max-w-3xl md:mx-auto w-full scroll-smooth"
       >
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center border shadow-xl ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-black/5 border-black/10 text-black'}`}>
-              <span className="text-2xl font-black">{PERSONAS[activePersona].icon}</span>
+          <div className="h-full flex flex-col items-center justify-center text-center space-y-6 py-10 animate-in fade-in duration-700">
+            <div className={`w-20 h-20 rounded-[2.5rem] flex items-center justify-center border shadow-2xl animate-pulse ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-black/5 border-black/10 text-black'}`}>
+              <span className="text-3xl font-black">{PERSONAS[activePersona].icon}</span>
             </div>
-            <div className="space-y-1">
-              <h2 className={`text-2xl font-black tracking-tighter ${isDark ? 'text-white' : 'text-black'}`}>{PERSONAS[activePersona].name}</h2>
-              <p className={`text-sm font-medium px-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            <div className="space-y-2">
+              <h2 className={`text-3xl font-black tracking-tighter ${isDark ? 'text-white' : 'text-black'}`}>{PERSONAS[activePersona].name}</h2>
+              <p className={`text-[11px] font-bold uppercase tracking-[0.2em] px-10 leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                 {PERSONAS[activePersona].description}
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3 mt-8 w-full max-w-sm px-4">
-               {['Explain coding logic', 'Evil plans', 'Generate art', 'Roast me'].map(t => (
+            <div className="grid grid-cols-1 gap-2 mt-8 w-full max-w-xs px-4">
+               {['Code for a trading bot', 'Talk like an EVIL friend', 'Generate cyber art', 'Tell me a secret'].map(t => (
                  <button 
                   key={t}
                   onClick={() => { setInput(t); }}
-                  className={`px-4 py-3 rounded-2xl border text-xs text-left transition-all active:scale-95 ${isDark ? 'border-white/5 hover:bg-white/5 text-gray-400' : 'border-black/5 hover:bg-black/5 text-gray-600'}`}
+                  className={`px-5 py-3.5 rounded-2xl border text-[10px] font-black uppercase tracking-widest text-left transition-all active:scale-95 ${isDark ? 'border-white/5 bg-white/5 text-gray-400' : 'border-black/5 bg-black/5 text-gray-600'}`}
                  >
                    {t}
                  </button>
@@ -159,46 +158,49 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
           ))
         )}
         {isLoading && (
-          <div className="flex items-start gap-4 animate-in fade-in duration-300">
-             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-black text-[10px] ${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}>
+          <div className="flex items-start gap-3 animate-pulse">
+             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 font-black text-[9px] ${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}>
                {PERSONAS[activePersona].icon}
              </div>
              <div className="space-y-2 mt-2">
-                <div className="flex gap-1.5">
-                  <div className={`w-2 h-2 rounded-full animate-bounce ${isDark ? 'bg-white/40' : 'bg-black/40'}`}></div>
-                  <div className={`w-2 h-2 rounded-full animate-bounce [animation-delay:-0.15s] ${isDark ? 'bg-white/40' : 'bg-black/40'}`}></div>
-                  <div className={`w-2 h-2 rounded-full animate-bounce [animation-delay:-0.3s] ${isDark ? 'bg-white/40' : 'bg-black/40'}`}></div>
+                <div className="flex gap-1">
+                  <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${isDark ? 'bg-white/40' : 'bg-black/40'}`}></div>
+                  <div className={`w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.15s] ${isDark ? 'bg-white/40' : 'bg-black/40'}`}></div>
+                  <div className={`w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.3s] ${isDark ? 'bg-white/40' : 'bg-black/40'}`}></div>
                 </div>
              </div>
           </div>
         )}
       </div>
 
-      <div className="p-4 md:pb-10">
+      {/* Optimized Input area for Mobile - Tall and Narrow */}
+      <div className="p-3 md:p-4 pb-6 md:pb-10">
         <form 
           onSubmit={handleSend}
-          className="relative max-w-3xl mx-auto group"
+          className="relative max-w-2xl mx-auto group"
         >
           <input 
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={`Command ${PERSONAS[activePersona].name}...`}
-            className={`w-full border rounded-2xl py-4 pl-5 pr-14 focus:outline-none focus:ring-2 transition-all text-sm shadow-xl ${isDark 
-              ? 'bg-[#1e1e1e] border-white/10 focus:ring-white/10 text-white placeholder-gray-500' 
-              : 'bg-[#f4f4f4] border-black/5 focus:ring-black/5 text-black placeholder-gray-400'}`}
+            placeholder={`Say something to ${PERSONAS[activePersona].name}...`}
+            className={`w-full border rounded-[1.5rem] py-4.5 pl-5 pr-14 focus:outline-none focus:ring-0 transition-all text-sm font-medium shadow-2xl ${isDark 
+              ? 'bg-[#1a1a1a] border-white/5 text-white placeholder-gray-600' 
+              : 'bg-[#f0f0f0] border-black/5 text-black placeholder-gray-400'}`}
           />
           <button 
             type="submit"
             disabled={!input.trim() || isLoading}
-            className={`absolute right-2 top-2 bottom-2 w-10 flex items-center justify-center rounded-xl transition-all ${input.trim() 
-              ? (isDark ? 'bg-white text-black hover:scale-105' : 'bg-black text-white hover:scale-105') 
-              : (isDark ? 'bg-white/5 text-gray-500' : 'bg-black/5 text-gray-400')}`}
+            className={`absolute right-1.5 top-1.5 bottom-1.5 w-11 flex items-center justify-center rounded-2xl transition-all ${input.trim() 
+              ? (isDark ? 'bg-white text-black shadow-lg scale-100 active:scale-90' : 'bg-black text-white shadow-md scale-100 active:scale-90') 
+              : (isDark ? 'bg-white/5 text-gray-700' : 'bg-black/5 text-gray-300')}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
           </button>
         </form>
-        <p className={`text-[10px] text-center mt-3 font-bold uppercase tracking-widest ${isDark ? 'text-gray-700' : 'text-gray-300'}`}>ZOHAIBXNO18 PERSONAL AI • {PERSONAS[activePersona].name}</p>
+        <div className={`text-[8px] text-center mt-3 font-black uppercase tracking-[0.3em] ${isDark ? 'text-gray-800' : 'text-gray-300'}`}>
+          ZOHAIB X NO 18 • {PERSONAS[activePersona].name}
+        </div>
       </div>
     </div>
   );
