@@ -1,5 +1,5 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { Message, PersonaId, Persona } from "./types";
 
 export const PERSONAS: Record<PersonaId, Persona> = {
@@ -33,11 +33,12 @@ export const PERSONAS: Record<PersonaId, Persona> = {
   }
 };
 
-export async function chatWithZohaib(
+export async function chatWithZohaibStream(
   prompt: string,
   history: Message[],
-  personaId: PersonaId = 'original'
-): Promise<{ text: string; sources?: { uri: string; title: string }[]; imageURL?: string }> {
+  personaId: PersonaId = 'original',
+  onChunk: (text: string) => void
+): Promise<{ sources?: { uri: string; title: string }[]; imageURL?: string }> {
   
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const selectedPersona = PERSONAS[personaId] || PERSONAS.original;
@@ -63,7 +64,10 @@ export async function chatWithZohaib(
           }
         }
       }
-      if (imageURL) return { text: "Protocol: Visual Delivered.", imageURL };
+      if (imageURL) {
+        onChunk("Protocol: Visual Delivered.");
+        return { imageURL };
+      }
     } catch (e) {
       console.error("Visual gen failed.");
     }
@@ -71,30 +75,41 @@ export async function chatWithZohaib(
 
   try {
     const contents = [
-      ...history.slice(-15).map(m => ({
+      ...history.slice(-10).map(m => ({
         role: m.role === 'user' ? 'user' : 'model',
         parts: [{ text: m.text }]
       })),
       { role: 'user', parts: [{ text: prompt }] }
     ];
 
-    const response = await ai.models.generateContent({
+    const responseStream = await ai.models.generateContentStream({
       model: 'gemini-3-flash-preview',
       contents,
       config: {
         systemInstruction: selectedPersona.instruction,
+        // Remove search tool if user wants extreme speed, or keep it for quality
         tools: [{ googleSearch: {} }]
       },
     });
 
-    const text = response.text || "System Timeout. Refresh.";
-    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => ({
+    let fullText = '';
+    let lastResponse: GenerateContentResponse | null = null;
+
+    for await (const chunk of responseStream) {
+      const textChunk = chunk.text || "";
+      fullText += textChunk;
+      onChunk(fullText);
+      lastResponse = chunk as GenerateContentResponse;
+    }
+
+    const sources = lastResponse?.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => ({
       uri: chunk.web?.uri || '',
       title: chunk.web?.title || 'Source'
     })).filter((s: any) => s.uri !== '') || [];
 
-    return { text, sources };
+    return { sources };
   } catch (error: any) {
-    return { text: "ZOHAIBXNO18: Connection weak hai, Legend se rabta karo." };
+    onChunk("ZOHAIBXNO18: Connection weak hai bhai. Legend se rabta karo.");
+    return {};
   }
 }

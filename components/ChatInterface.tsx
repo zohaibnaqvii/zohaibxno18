@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Chat, Message, Theme, PersonaId } from '../types';
 import { db } from '../firebase';
-import { chatWithZohaib, PERSONAS } from '../gemini';
+import { chatWithZohaibStream, PERSONAS } from '../gemini';
 import MessageBubble from './MessageBubble';
 
 interface ChatInterfaceProps {
@@ -27,7 +27,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
         const chat = chats.find(c => c.chatId === chatId);
         if (chat) {
           setMessages(chat.messages);
-          setActivePersona(chat.personaId);
+          setActivePersona(chat.personaId || 'original');
         }
       } else {
         setMessages([]);
@@ -47,32 +47,53 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    const currentInput = input;
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      text: input,
+      text: currentInput,
       timestamp: Date.now(),
     };
 
+    // Save history for context BEFORE adding the new user message to state
+    const historyForContext = [...messages];
+    
     setMessages(prev => [...prev, userMessage]);
-    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
-    try {
-      const result = await chatWithZohaib(currentInput, messages, activePersona);
-      
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'ai',
-        text: result.text,
-        imageURL: result.imageURL,
-        sources: result.sources,
-        timestamp: Date.now(),
-      };
+    // Placeholder for AI streaming message
+    const aiMessageId = (Date.now() + 1).toString();
+    const aiPlaceholder: Message = {
+      id: aiMessageId,
+      role: 'ai',
+      text: '',
+      timestamp: Date.now(),
+    };
+    
+    setMessages(prev => [...prev, aiPlaceholder]);
 
+    try {
+      const result = await chatWithZohaibStream(
+        currentInput, 
+        historyForContext, 
+        activePersona,
+        (streamedText) => {
+          setMessages(prev => prev.map(m => 
+            m.id === aiMessageId ? { ...m, text: streamedText } : m
+          ));
+        }
+      );
+      
       setMessages(prev => {
-        const final = [...prev, aiMessage];
+        const final = prev.map(m => 
+          m.id === aiMessageId ? { 
+            ...m, 
+            imageURL: result.imageURL, 
+            sources: result.sources 
+          } : m
+        );
+        
         const updatedChatId = chatId || `chat_${Date.now()}`;
         const chatData: Chat = {
           chatId: updatedChatId,
@@ -87,7 +108,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
         return final;
       });
     } catch (error) {
-      console.error("Chat error:", error);
+      console.error("Streaming error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +116,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
 
   return (
     <div className={`flex-1 flex flex-col h-full relative transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-white'}`}>
-      {/* Persona Bar - Slim and Top Aligned */}
+      {/* Persona Bar - Extra Slim */}
       <div className={`flex items-center gap-1.5 p-2 px-4 border-b overflow-x-auto no-scrollbar shrink-0 ${isDark ? 'border-white/5 bg-black' : 'border-black/5 bg-gray-50'}`}>
         {(Object.keys(PERSONAS) as PersonaId[]).map(pid => (
           <button
@@ -112,30 +133,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
         ))}
       </div>
 
-      {/* Messages - Vertical/Slim Focus */}
+      {/* Messages - Vertical Focus */}
       <div 
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth md:max-w-2xl mx-auto w-full"
       >
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center space-y-6 opacity-60 animate-in fade-in duration-1000">
+          <div className="h-full flex flex-col items-center justify-center text-center space-y-6 opacity-60">
             <div className={`w-24 h-24 rounded-[2.5rem] border flex items-center justify-center bg-black text-white font-black text-4xl shadow-[0_0_50px_rgba(255,255,255,0.05)] ${isDark ? 'border-white/10' : 'border-black/10'}`}>
               {PERSONAS[activePersona].icon}
             </div>
             <div className="space-y-1">
               <div className="font-black text-3xl tracking-tighter uppercase">{PERSONAS[activePersona].name}</div>
               <div className="text-[10px] font-bold uppercase tracking-[0.5em] text-gray-500">{PERSONAS[activePersona].description}</div>
-            </div>
-            <div className="grid grid-cols-1 gap-2 w-full max-w-[240px] pt-4">
-              {['Roast me Bhai', 'Cyber code expert', 'Money talk'].map(t => (
-                <button 
-                  key={t}
-                  onClick={() => setInput(t)}
-                  className={`px-4 py-3 rounded-2xl border text-[10px] font-black uppercase tracking-widest text-left ${isDark ? 'border-white/5 bg-white/5' : 'border-black/5 bg-black/5'}`}
-                >
-                  {t}
-                </button>
-              ))}
             </div>
           </div>
         )}
@@ -144,7 +154,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
           <MessageBubble key={m.id} message={m} user={user} theme={theme} personaId={activePersona} />
         ))}
         
-        {isLoading && (
+        {isLoading && !messages[messages.length-1]?.text && (
           <div className="flex items-center gap-3 animate-pulse">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-black border border-white/10 text-white font-black text-[10px]">
               {PERSONAS[activePersona].icon}
@@ -158,7 +168,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
         )}
       </div>
 
-      {/* Input - Narrow and Slim */}
+      {/* Input - Sticky Bottom */}
       <div className={`p-4 md:p-8 transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-white'}`}>
         <form 
           onSubmit={handleSend}
@@ -180,7 +190,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, chatId, theme, onCh
           </button>
         </form>
         <div className="mt-4 text-center">
-          <p className="text-[9px] font-black text-gray-800 uppercase tracking-[0.6em]">LEGENDARY ACCESS ONLY</p>
+          <p className="text-[9px] font-black text-gray-800 uppercase tracking-[0.6em]">ELITE ACCESS GRANTED</p>
         </div>
       </div>
     </div>
