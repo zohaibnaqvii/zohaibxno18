@@ -1,17 +1,20 @@
 
 import React, { useState } from 'react';
-import { Message, User, Theme } from '../types';
+import { Message, User, Theme, PersonaId } from '../types';
+import { PERSONAS } from '../gemini';
 
 interface MessageBubbleProps {
   message: Message;
   user: User;
   theme: Theme;
+  personaId?: PersonaId;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, user, theme }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, user, theme, personaId = 'original' }) => {
   const [copied, setCopied] = useState(false);
   const isAI = message.role === 'ai';
   const isDark = theme === 'dark';
+  const persona = PERSONAS[personaId] || PERSONAS.original;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.text);
@@ -24,13 +27,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, user, theme }) =
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border overflow-hidden ${isAI 
         ? (isDark ? 'bg-white text-black font-black text-[10px]' : 'bg-black text-white font-black text-[10px]') 
         : (isDark ? 'bg-gray-800 border-white/10' : 'bg-gray-100 border-black/10')}`}>
-        {isAI ? 'ZX' : <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />}
+        {isAI ? persona.icon : <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />}
       </div>
       
       <div className="flex-1 min-w-0 space-y-2 relative">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{isAI ? 'ZOHAIBXNO18' : 'YOU'}</span>
+            <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+              {isAI ? persona.name : 'YOU'}
+            </span>
             <span className={`text-[9px] font-bold ${isDark ? 'text-gray-700' : 'text-gray-300'}`}>
               {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
