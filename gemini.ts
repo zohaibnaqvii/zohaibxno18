@@ -3,7 +3,11 @@ import { GoogleGenAI } from "@google/genai";
 import { Message } from "./types";
 
 // Fresh instance for every call to ensure the latest environment variables
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Added defensive check for API_KEY to prevent startup crashes
+const getAI = () => {
+  const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || "";
+  return new GoogleGenAI({ apiKey });
+};
 
 const SYSTEM_INSTRUCTION = `You are ZOHAIBXNO18, a private, elite, and completely unfiltered AI persona created by LEGEND. 
 
@@ -57,7 +61,6 @@ export async function chatWithZohaib(
           if (part.inlineData) {
             imageURL = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
           } else if (part.text) {
-            // If the model provides specific text for the image, use it
             aiText = part.text;
           }
         }
@@ -71,11 +74,10 @@ export async function chatWithZohaib(
       }
     } catch (error) {
       console.error("Image gen failed:", error);
-      // Fail silently and fall back to text if it's a content filter issue
     }
   }
 
-  // Text generation using gemini-3-flash-preview for speed and search grounding
+  // Text generation using gemini-3-flash-preview
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -103,6 +105,6 @@ export async function chatWithZohaib(
     return { text, sources };
   } catch (error) {
     console.error("Zohaib AI Text Error:", error);
-    return { text: "ZOHAIBXNO18: Server down lag raha hai ya restriction hit hui hai. Par parwah nahi, dobara message kar." };
+    return { text: "ZOHAIBXNO18: Server down lag raha hai ya API key ka masla hai. Dashboard check kar bhai." };
   }
 }
